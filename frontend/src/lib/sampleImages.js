@@ -20,7 +20,7 @@ export const SAMPLE_IMAGES = [
         id: "sample-moderate",
         forcedId: "moderate-lesion",
         label: "Moderate lesion",
-        url: "https://images.unsplash.com/photo-1597430203889-c93cce4aaa47?w=600&q=80&auto=format&fit=crop",
+        url: "https://images.unsplash.com/photo-1502741126161-b048400d085d?w=600&q=80&auto=format&fit=crop",
     },
     {
         id: "sample-severe",
