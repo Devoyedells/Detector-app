@@ -1,41 +1,47 @@
 import { motion } from "framer-motion";
-import { Activity, Gauge } from "lucide-react";
+import { Activity, Gauge, Target, Heart } from "lucide-react";
+
+const COLOR_MAP = {
+    emerald: {
+        from: "#10b981",
+        to: "#86efac",
+        glow: "rgba(34,197,94,0.35)",
+        text: "text-emerald-300",
+    },
+    amber: {
+        from: "#f59e0b",
+        to: "#fde68a",
+        glow: "rgba(251,191,36,0.35)",
+        text: "text-amber-300",
+    },
+    rose: {
+        from: "#f43f5e",
+        to: "#fda4af",
+        glow: "rgba(251,113,133,0.35)",
+        text: "text-rose-300",
+    },
+    orange: {
+        from: "#fb923c",
+        to: "#fed7aa",
+        glow: "rgba(251,146,60,0.35)",
+        text: "text-orange-300",
+    },
+    sky: {
+        from: "#0ea5e9",
+        to: "#bae6fd",
+        glow: "rgba(14,165,233,0.35)",
+        text: "text-sky-300",
+    },
+};
 
 const Bar = ({ value, label, hint, icon: Icon, accent, delay = 0, testId }) => {
-    const colorMap = {
-        emerald: {
-            from: "#10b981",
-            to: "#86efac",
-            glow: "rgba(34,197,94,0.35)",
-            text: "text-emerald-300",
-        },
-        amber: {
-            from: "#f59e0b",
-            to: "#fde68a",
-            glow: "rgba(251,191,36,0.35)",
-            text: "text-amber-300",
-        },
-        rose: {
-            from: "#f43f5e",
-            to: "#fda4af",
-            glow: "rgba(251,113,133,0.35)",
-            text: "text-rose-300",
-        },
-        orange: {
-            from: "#fb923c",
-            to: "#fed7aa",
-            glow: "rgba(251,146,60,0.35)",
-            text: "text-orange-300",
-        },
-    };
-    const c = colorMap[accent] || colorMap.emerald;
-
+    const c = COLOR_MAP[accent] || COLOR_MAP.emerald;
     return (
-        <div data-testid={testId} className="space-y-2.5">
+        <div data-testid={testId} className="space-y-2">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-slate-300">
                     <Icon className={`h-4 w-4 ${c.text}`} />
-                    <span className="text-sm font-medium">{label}</span>
+                    <span className="text-[13px] font-medium">{label}</span>
                 </div>
                 <motion.span
                     initial={{ opacity: 0, x: 6 }}
@@ -46,13 +52,13 @@ const Bar = ({ value, label, hint, icon: Icon, accent, delay = 0, testId }) => {
                     {value.toFixed(1)}%
                 </motion.span>
             </div>
-            <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-white/[0.04] ring-1 ring-inset ring-white/5">
+            <div className="relative h-2 w-full overflow-hidden rounded-full bg-white/[0.04] ring-1 ring-inset ring-white/5">
                 <motion.div
                     initial={{ width: 0 }}
-                    animate={{ width: `${value}%` }}
+                    animate={{ width: `${Math.min(100, Math.max(0, value))}%` }}
                     transition={{
                         delay,
-                        duration: 1.1,
+                        duration: 1.0,
                         ease: [0.2, 0.8, 0.2, 1],
                     }}
                     className="relative h-full rounded-full"
@@ -72,39 +78,57 @@ const Bar = ({ value, label, hint, icon: Icon, accent, delay = 0, testId }) => {
                     />
                 </motion.div>
             </div>
-            {hint && (
-                <p className="text-xs text-slate-500">{hint}</p>
-            )}
+            {hint && <p className="text-[11px] text-slate-500">{hint}</p>}
         </div>
     );
 };
 
 export const MetricsPanel = ({ result }) => {
+    const accent = result.statusColor || "emerald";
+    const healthAccent = result.leafHealthScore >= 60 ? "emerald" : accent;
     return (
         <motion.div
             data-testid="metrics-panel"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="glass-inner p-5 space-y-5"
+            className="glass-inner p-5 space-y-4"
         >
             <Bar
                 testId="confidence-bar"
                 label="Confidence"
-                hint="Model certainty in the predicted class."
+                hint="Model probability for the predicted class."
                 icon={Gauge}
                 value={result.confidence}
                 accent="emerald"
                 delay={0.1}
             />
             <Bar
+                testId="precision-bar"
+                label="Precision"
+                hint="Per-class evaluation metric (configurable)."
+                icon={Target}
+                value={result.precision}
+                accent="sky"
+                delay={0.2}
+            />
+            <Bar
                 testId="severity-bar"
                 label="Severity"
-                hint="Estimated % of leaf surface affected."
+                hint="Estimated disease severity."
                 icon={Activity}
                 value={result.severity}
-                accent={result.statusColor}
-                delay={0.35}
+                accent={accent}
+                delay={0.3}
+            />
+            <Bar
+                testId="health-bar"
+                label="Leaf Health Score"
+                hint="Higher is healthier."
+                icon={Heart}
+                value={result.leafHealthScore}
+                accent={healthAccent}
+                delay={0.4}
             />
         </motion.div>
     );

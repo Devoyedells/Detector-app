@@ -1,11 +1,15 @@
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Beaker,
-    ShieldCheck,
     Stethoscope,
     Sparkles,
     ChevronRight,
     Clock,
+    Gauge,
+    Target,
+    Activity,
+    Heart,
+    Leaf,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { toast } from "sonner";
@@ -32,6 +36,18 @@ const Section = ({ icon: Icon, title, children, delay = 0 }) => (
         </div>
         <p className="text-sm leading-relaxed text-slate-400">{children}</p>
     </motion.div>
+);
+
+const StatRow = ({ icon: Icon, label, value, color = "text-emerald-300" }) => (
+    <div className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2">
+        <div className="flex items-center gap-2 text-slate-400">
+            <Icon className={`h-3.5 w-3.5 ${color}`} />
+            <span className="text-[12px]">{label}</span>
+        </div>
+        <span className={`font-mono text-[12px] font-semibold ${color}`}>
+            {value}
+        </span>
+    </div>
 );
 
 export const DetectionResult = ({ result, loading }) => {
@@ -80,27 +96,107 @@ export const DetectionResult = ({ result, loading }) => {
                         exit={{ opacity: 0 }}
                         className="flex flex-col gap-5 flex-1"
                     >
-                        <Section icon={Stethoscope} title="About This Disease" delay={0.05}>
-                            {result.recommendation}
-                        </Section>
+                        {/* Quick stats grid */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.05 }}
+                            className="grid grid-cols-2 gap-2"
+                            data-testid="result-stats"
+                        >
+                            <StatRow
+                                icon={Gauge}
+                                label="Confidence"
+                                value={`${result.confidence.toFixed(1)}%`}
+                                color="text-emerald-300"
+                            />
+                            <StatRow
+                                icon={Target}
+                                label="Precision"
+                                value={`${result.precision.toFixed(1)}%`}
+                                color="text-sky-300"
+                            />
+                            <StatRow
+                                icon={Activity}
+                                label="Severity"
+                                value={`${result.severity.toFixed(1)}%`}
+                                color={
+                                    result.statusColor === "emerald"
+                                        ? "text-emerald-300"
+                                        : result.statusColor === "amber"
+                                          ? "text-amber-300"
+                                          : "text-rose-300"
+                                }
+                            />
+                            <StatRow
+                                icon={Heart}
+                                label="Health Score"
+                                value={`${result.leafHealthScore.toFixed(1)}%`}
+                                color={
+                                    result.leafHealthScore >= 60
+                                        ? "text-emerald-300"
+                                        : "text-amber-300"
+                                }
+                            />
+                        </motion.div>
+
                         <div className="h-px w-full bg-white/5" />
-                        <Section icon={Sparkles} title="Description" delay={0.15}>
+
+                        <Section
+                            icon={Leaf}
+                            title="About This Class"
+                            delay={0.15}
+                        >
                             {result.description}
                         </Section>
-                        <Section icon={Beaker} title="Causes" delay={0.25}>
-                            {result.causes}
+
+                        <Section
+                            icon={Stethoscope}
+                            title="Recommendation"
+                            delay={0.25}
+                        >
+                            {result.recommendation}
                         </Section>
-                        <Section icon={ShieldCheck} title="Treatment" delay={0.35}>
-                            {result.treatment}
-                        </Section>
+
+                        {result.probabilities && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.35 }}
+                                className="space-y-2"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <Beaker className="h-4 w-4 text-emerald-300" />
+                                    <h4 className="font-display text-sm font-semibold text-white">
+                                        Class Probabilities
+                                    </h4>
+                                </div>
+                                <div className="space-y-1.5">
+                                    {Object.entries(result.probabilities).map(
+                                        ([cls, p]) => (
+                                            <ProbRow
+                                                key={cls}
+                                                label={cls}
+                                                value={p * 100}
+                                                isTop={cls === result.status}
+                                            />
+                                        ),
+                                    )}
+                                </div>
+                            </motion.div>
+                        )}
 
                         <div className="mt-auto flex flex-col gap-3 pt-4">
                             <div className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] px-3.5 py-2.5 text-[11px] text-slate-400 font-mono">
                                 <span className="flex items-center gap-1.5">
                                     <Clock className="h-3 w-3" />
-                                    {new Date(result.inferredAt).toLocaleTimeString()}
+                                    {new Date(
+                                        result.inferredAt,
+                                    ).toLocaleTimeString()}
                                 </span>
-                                <span>{result.modelVersion}</span>
+                                <span className="truncate max-w-[60%] text-right">
+                                    {result.modelVersion}
+                                </span>
                             </div>
                             <Button
                                 data-testid="treatment-tips-btn"
@@ -124,6 +220,38 @@ export const DetectionResult = ({ result, loading }) => {
     );
 };
 
+const ProbRow = ({ label, value, isTop }) => (
+    <div className="flex items-center gap-3">
+        <span
+            className={`w-28 truncate text-xs ${
+                isTop ? "text-emerald-300 font-semibold" : "text-slate-400"
+            }`}
+        >
+            {label}
+        </span>
+        <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-white/[0.05]">
+            <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${value}%` }}
+                transition={{ duration: 0.8, ease: [0.2, 0.8, 0.2, 1] }}
+                className="h-full rounded-full"
+                style={{
+                    background: isTop
+                        ? "linear-gradient(90deg,#10b981,#86efac)"
+                        : "linear-gradient(90deg,#475569,#94a3b8)",
+                }}
+            />
+        </div>
+        <span
+            className={`font-mono text-[11px] ${
+                isTop ? "text-emerald-300" : "text-slate-500"
+            }`}
+        >
+            {value.toFixed(1)}%
+        </span>
+    </div>
+);
+
 const LoadingState = () => (
     <motion.div
         initial={{ opacity: 0 }}
@@ -140,10 +268,10 @@ const LoadingState = () => (
         </div>
         <div>
             <p className="font-display text-base font-semibold text-slate-100">
-                Analyzing leaf pattern…
+                Running inference…
             </p>
             <p className="mt-1 text-xs text-slate-400 font-mono uppercase tracking-widest">
-                Running lesion segmentation
+                MobileNetV2 · 224×224
             </p>
         </div>
         <div className="flex gap-1.5">
@@ -178,7 +306,7 @@ const EmptyState = () => (
                 No analysis yet
             </p>
             <p className="mt-1 text-xs text-slate-500 max-w-[220px]">
-                Upload or select a sample leaf to see detection results here.
+                Upload or select a sample leaf to see classifier output.
             </p>
         </div>
     </motion.div>

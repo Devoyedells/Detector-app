@@ -10,7 +10,7 @@ import { AboutCard } from "../components/AboutCard";
 import { DetectionResult } from "../components/DetectionResult";
 import { SampleGallery } from "../components/SampleGallery";
 import { Button } from "../components/ui/button";
-import { runMockDetection } from "../lib/mockDetection";
+import { runDetection } from "../lib/detection";
 import { toast } from "sonner";
 
 const statusDot = {
@@ -22,7 +22,6 @@ const statusDot = {
 
 export default function Detector() {
     const [imageSrc, setImageSrc] = useState(null);
-    const [forcedId, setForcedId] = useState(null);
     const [activeSampleId, setActiveSampleId] = useState(null);
     const [result, setResult] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -30,14 +29,12 @@ export default function Detector() {
 
     const handleUpload = (src) => {
         setImageSrc(src);
-        setForcedId(null);
         setActiveSampleId(null);
         setResult(null);
     };
 
     const handleSample = (sample) => {
         setImageSrc(sample.url);
-        setForcedId(sample.forcedId);
         setActiveSampleId(sample.id);
         setResult(null);
     };
@@ -47,11 +44,17 @@ export default function Detector() {
         setLoading(true);
         setResult(null);
         try {
-            const r = await runMockDetection(imageSrc, { forcedId });
+            const r = await runDetection(imageSrc);
             setResult(r);
-            toast.success(`${r.status} · ${r.confidence.toFixed(1)}% confidence`);
+            toast.success(
+                `${r.status} · ${r.confidence.toFixed(1)}% confidence`,
+            );
         } catch (err) {
-            toast.error("Detection failed. Please try again.");
+            const msg =
+                err?.response?.data?.detail ||
+                err?.message ||
+                "Detection failed. Please try again.";
+            toast.error(msg);
         } finally {
             setLoading(false);
         }
@@ -60,7 +63,6 @@ export default function Detector() {
     const handleReset = () => {
         setImageSrc(null);
         setResult(null);
-        setForcedId(null);
         setActiveSampleId(null);
         setLoading(false);
     };
@@ -75,7 +77,7 @@ export default function Detector() {
     };
 
     const diseaseTitle = result
-        ? `Disease: ${result.status}`
+        ? `Class: ${result.status}`
         : imageSrc
           ? "Ready to analyze"
           : "Awaiting sample";
@@ -283,7 +285,7 @@ export default function Detector() {
 
                     {/* Footer caption */}
                     <p className="mt-6 text-center text-[11px] font-mono uppercase tracking-[0.22em] text-slate-500">
-                        Frontend preview · Mock inference · Structured for real-model integration
+                        MobileNetV2 · 3-class yam leaf classifier · live inference
                     </p>
                 </motion.main>
             </div>
